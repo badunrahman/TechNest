@@ -1,82 +1,79 @@
 <?php
 
-use App\Helpers\SessionManager;
-
 use App\Helpers\ViewHelper;
-//TODO: set the page title dynamically based on the view being rendered in the controller.
-$page_title = 'Products list';
 
-//TODO: We need to load an admin-specific header.
-ViewHelper::loadAdminHeader($page_title);
-$products = $data['products'];
+$pageTitle = $data['page_title'] ?? 'Products';
+$products = $data['products'] ?? [];
+
+ViewHelper::loadAdminHeader($pageTitle);
 ?>
 <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-    <div
-        class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Dashboard</h1>
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><?= hs($pageTitle) ?></h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <button type="button" class="btn btn-sm btn-outline-secondary">
-                    Share
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary">
-                    Export
-                </button>
-            </div>
-            <button
-                type="button"
-                class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1">
-                <svg class="bi" aria-hidden="true">
-                    <use xlink:href="#calendar3"></use>
-                </svg>
-                This week
-            </button>
+            <a class="btn btn-sm btn-primary" href="<?= hs(APP_ADMIN_URL . '/products/create') ?>">
+                <span class="me-1">+</span> Create Product
+            </a>
         </div>
     </div>
-    <h2>Product Listing</h2>
-    <div class="table-responsive small">
-        <h4>The list of products will be rendered here.</h4>
-        <div class="mb-4">
-            <?= App\Helpers\FlashMessage::render() ?>
-        </div>
-        <table class="table table-striped">
-            <thead>
-                <th>ID</th>
-                <th>Category ID</th>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Created</th>
-                <th>Updated</th>
-                <th>Actions</th>
-            </thead>
-            <tbody>
-                <?php foreach ($products as $key => $product) { ?>
+
+    <div class="mb-3">
+        <?= App\Helpers\FlashMessage::render() ?>
+    </div>
+
+    <?php if (empty($products)) : ?>
+        <div class="alert alert-info">No products found. Create the first one.</div>
+    <?php else : ?>
+        <div class="table-responsive small">
+            <table class="table table-striped align-middle">
+                <thead>
                     <tr>
-                        <td><?= $product['id'] ?></td>
-                        <td><?= $product['category_id'] ?></td>
-                        <td><?= $product['name'] ?></td>
-                        <td> <?= $product['description'] ?></td>
-                        <td> <?= $product['price'] ?></td>
-                        <td> <?= $product['stock_quantity'] ?></td>
-                        <td> <?= $product['created_at'] ?></td>
-                        <td> <?= $product['updated_at'] ?></td>
-                        <td>
-                            <a href="products/edit/<?= $product['id'] ?>" class="btn btn-success">Edit</a>
-                        </td>
+                        <th scope="col">ID</th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Stock</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Updated</th>
+                        <th scope="col" class="text-end">Actions</th>
                     </tr>
-                <?php }
-                ?>
-            </tbody>
-        </table>
-        <?= SessionManager::get('username'); ?>
-    </div>
+                </thead>
+                <tbody>
+                    <?php foreach ($products as $product) : ?>
+                        <tr>
+                            <td><?= hs((string) ($product['id'] ?? '')) ?></td>
+                            <td><?= hs((string) ($product['name'] ?? '')) ?></td>
+                            <td><?= hs((string) ($product['category_name'] ?? $product['category_id'] ?? '')) ?></td>
+                            <td>
+                                <?php
+                                $price = $product['price'] ?? 0;
+                                $priceFormatted = is_numeric($price) ? number_format((float) $price, 2) : (string) $price;
+                                ?>
+                                $<?= hs($priceFormatted) ?>
+                            </td>
+                            <td><?= hs((string) ($product['stock_quantity'] ?? '')) ?></td>
+                            <td><?= hs(isset($product['created_at']) ? date_remove_secs((string) $product['created_at']) : '') ?></td>
+                            <td><?= hs(isset($product['updated_at']) ? date_remove_secs((string) $product['updated_at']) : '') ?></td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary me-1" href="<?= hs(APP_ADMIN_URL . '/products/' . ($product['id'] ?? '') . '/edit') ?>">
+                                    Edit
+                                </a>
+                                <a
+                                    class="btn btn-sm btn-outline-danger"
+                                    href="<?= hs(APP_ADMIN_URL . '/products/' . ($product['id'] ?? '') . '/delete') ?>"
+                                    onclick="return confirm('Are you sure you want to delete this product?');"
+                                >
+                                    Delete
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </main>
-
 <?php
-
 ViewHelper::loadJsScripts();
-//TODO: We need to load an admin-specific footer.
 ViewHelper::loadAdminFooter();
 ?>
