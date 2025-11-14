@@ -11,18 +11,27 @@
         name="author"
         content="Mark Otto, Jacob Thornton, and Bootstrap contributors" />
     <meta name="generator" content="Astro v5.13.2" />
-    <title><?= $page_title ?></title>
+    <title><?= htmlspecialchars($page_title ?? 'Admin Dashboard') ?></title>
+
+    <!-- Optional: original canonical link -->
     <link
         rel="canonical"
         href="https://getbootstrap.com/docs/5.3/examples/dashboard/" />
+
+    <!-- Theme / color mode script (local file in public/assets/js/color-modes.js) -->
     <script src="<?= APP_ASSETS_DIR_URL ?>/js/color-modes.js"></script>
 
-    />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-    <script src="../assets/js/color-modes.js"></script>
-    <!-- <link href="../assets/dist/css/bootstrap.min.css" rel="stylesheet" /> -->
+    <!-- Bootstrap 5 CSS from CDN -->
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous">
+
+    <!-- Dashboard custom CSS (local in public/assets/css/dashboard.css) -->
+    <link rel="stylesheet" href="<?= APP_ASSETS_DIR_URL ?>/css/dashboard.css">
+
     <meta name="theme-color" content="#712cf9" />
-    <link href="<?= APP_ASSETS_DIR_URL ?> public\assets\css\dashboard.css" rel="stylesheet" />
+
     <style>
         .bd-placeholder-img {
             font-size: 1.125rem;
@@ -108,6 +117,7 @@
         }
     </style>
 </head>
+
 
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
