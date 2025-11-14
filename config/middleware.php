@@ -8,6 +8,11 @@ use App\Middleware\SessionMiddleware;
 
 return function (App $app) {
     //TODO: Add your middleware here.
+// Option #1:
+    $sessionMiddleware = new SessionMiddleware();
+    $app->add($sessionMiddleware);
+    // Option #2:
+    // $app->add(SessionMiddleware::c
 
     $app->addBodyParsingMiddleware();
     $app->addRoutingMiddleware();
