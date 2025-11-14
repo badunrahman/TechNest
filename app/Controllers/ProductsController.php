@@ -4,82 +4,163 @@ namespace App\Controllers;
 
 use App\Domain\Models\CategoriesModel;
 use App\Domain\Models\ProductsModel;
+use App\Domain\Services\ProductService;
 use App\Helpers\FlashMessage;
+use App\Helpers\SessionManager;
 use DI\Container;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ProductsController extends BaseController
 {
-    public function __construct(Container $container, private ProductsModel $products_model, private CategoriesModel $categories_model)
-    {
+    private const FLASH_OLD_KEY = 'products.old';
+    private const FLASH_ERRORS_KEY = 'products.errors';
+
+    public function __construct(
+        Container $container,
+        private ProductsModel $productsModel,
+        private CategoriesModel $categoriesModel,
+        private ProductService $productService
+    ) {
         parent::__construct($container);
     }
 
-    //* GET admin/products --> The list of products.
     public function index(Request $request, Response $response, array $args): Response
     {
-        //* 1) Fetch from the DB.
-        $products = $this->products_model->getProducts();
+        $products = $this->productsModel->getAllProducts();
 
-        //* 2) Prepare the data to be passed to the view
-        //!NOTE: Must be a well-structured associative array.
-        $data['data'] = [
-            'title' => 'List of Products',
-            'message' => 'Welcome to the home page',
+        $data = [
+            'page_title' => 'Products',
             'products' => $products,
         ];
-        return $this->render($response, "admin/products/productsIndexView.php", $data);
-    }
 
-    public function show(Request $request, Response $response, array $args): Response
-    {
-        return $response;
-        // $productId = (int) $args['id'];
-        // $product = $this->productsModel->findById($productId);
+        return $this->render($response, 'admin/products/productIndexView.php', $data);
     }
 
     public function create(Request $request, Response $response, array $args): Response
     {
-        return $response;
-    }
-    public function edit(Request $request, Response $response, array $args): Response
-    {
-        //* Step 1) Get the item id to be edited from the query params
-        //* section of the URI
-        $product_id = $args["product_id"];
-        // dd("Editing product" . $product_id["id"]);
-
-        //* Step 2) Pull the existing item identified by the received ID from the DB.
-        $product = $this->products_model->getProductById($product_id);
-        //* Step 2.a) Get the list of categories
-        $categories = $this->categories_model->getCategories();
-
-        //* Step 3) Pass it to the view where the update/editing from filled with the item info will be rendered.
+        $categories = $this->categoriesModel->getAllCategories();
 
         $data = [
-            'page_title' => "Edit product details",
-            'product' => $product,
-            'categories' => $categories
+            'page_title' => 'Create Product',
+            'categories' => $categories,
+            'old' => $this->pullOldInput(),
+            'errors' => $this->pullErrors(),
         ];
-        return $this->render($response, 'admin/products/productsEditView.php', $data);
+
+        return $this->render($response, 'admin/products/productCreateView.php', $data);
     }
-    //* ROUTE: Post /products/update
-    public function update(Request $request, Response $response, array $args): Response
+
+    public function store(Request $request, Response $response, array $args): Response
     {
-        //! Handle the submission of the edit form.
-        //? Save the edited product info.
-        //* 1) Get the received form data from the request
-        $products_info = $request->getParsedBody();
-        // dd($products_info);
-        //TODO: Add a flash message to be shown to the user in the master list (products list)
-        FlashMessage::success('Successfully updated!');
-        //* 2) Ask the model to save the product info.
-        $this->products_model->updateProduct($products_info);
+        $payload = $request->getParsedBody() ?? [];
+        $result = $this->productService->validateProduct($payload);
+
+        if (!$result['success']) {
+            SessionManager::set(self::FLASH_OLD_KEY, $result['data']);
+            SessionManager::set(self::FLASH_ERRORS_KEY, $result['errors']);
+            FlashMessage::error('Please fix the validation errors and try again.');
+
+            return $this->redirect($request, $response, 'products.create');
+        }
+
+        $this->productsModel->create($result['data']);
+        FlashMessage::success('Product created successfully.');
+
         return $this->redirect($request, $response, 'products.index');
     }
+
+    public function edit(Request $request, Response $response, array $args): Response
+    {
+        $productId = isset($args['id']) ? (int) $args['id'] : 0;
+        if ($productId <= 0) {
+            FlashMessage::error('Invalid product selected.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $product = $this->productsModel->findById($productId);
+        if ($product === false) {
+            FlashMessage::error('Product not found.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $categories = $this->categoriesModel->getAllCategories();
+
+        $data = [
+            'page_title' => 'Edit Product',
+            'product' => $product,
+            'categories' => $categories,
+            'old' => $this->pullOldInput(),
+            'errors' => $this->pullErrors(),
+        ];
+
+        return $this->render($response, 'admin/products/productEditView.php', $data);
+    }
+
+    public function update(Request $request, Response $response, array $args): Response
+    {
+        $productId = isset($args['id']) ? (int) $args['id'] : 0;
+        if ($productId <= 0) {
+            FlashMessage::error('Invalid product selected.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $payload = $request->getParsedBody() ?? [];
+        $result = $this->productService->validateProduct($payload);
+
+        if (!$result['success']) {
+            SessionManager::set(self::FLASH_OLD_KEY, $result['data']);
+            SessionManager::set(self::FLASH_ERRORS_KEY, $result['errors']);
+            FlashMessage::error('Please fix the validation errors and try again.');
+
+            return $this->redirect($request, $response, 'products.edit', ['id' => $productId]);
+        }
+
+        $product = $this->productsModel->findById($productId);
+        if ($product === false) {
+            FlashMessage::error('Product not found.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $this->productsModel->update($productId, $result['data']);
+        FlashMessage::success('Product updated successfully.');
+
+        return $this->redirect($request, $response, 'products.index');
+    }
+
     public function delete(Request $request, Response $response, array $args): Response
     {
-        return $response;
+        $productId = isset($args['id']) ? (int) $args['id'] : 0;
+        if ($productId <= 0) {
+            FlashMessage::error('Invalid product selected.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $product = $this->productsModel->findById($productId);
+        if ($product === false) {
+            FlashMessage::error('Product not found.');
+            return $this->redirect($request, $response, 'products.index');
+        }
+
+        $this->productsModel->delete($productId);
+        FlashMessage::success('Product deleted successfully.');
+
+        return $this->redirect($request, $response, 'products.index');
+    }
+
+    private function pullOldInput(): array
+    {
+        $old = SessionManager::get(self::FLASH_OLD_KEY, []);
+        SessionManager::remove(self::FLASH_OLD_KEY);
+
+        return is_array($old) ? $old : [];
+    }
+
+    private function pullErrors(): array
+    {
+        $errors = SessionManager::get(self::FLASH_ERRORS_KEY, []);
+        SessionManager::remove(self::FLASH_ERRORS_KEY);
+
+        return is_array($errors) ? $errors : [];
     }
 }

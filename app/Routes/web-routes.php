@@ -6,6 +6,7 @@ declare(strict_types=1);
  * This file contains the routes for the web application.
  */
 
+use App\Controllers\CategoriesController;
 use App\Controllers\DashboardController;
 use App\Controllers\HomeController;
 use App\Controllers\ProductsController;
@@ -20,34 +21,76 @@ return static function (Slim\App $app): void {
 
     //ROuting group for the amdin panel
 
-    $app->group(
-        '/admin',
-        function ($group) {
-            //TODO: add the admin related  routes here
-            // Add/register admin routes.
-            $group->get(
-                '/dashboard',
-                [DashboardController::class, 'index']
-            )->setName('dashboard.index');
+    $app->group('/admin', function ($group) {
+        //TODO: add the admin related  routes here
+        // Add/register admin routes.
+        $group->get(
+            '/dashboard',
+            [DashboardController::class, 'index']
+        )->setName('dashboard.index');
 
-            $group->get(
-                '/products',
-                [ProductsController::class, 'index']
-            )->setName('products.index');
+        // Product CRUD routes
+        $group->get(
+            '/products',
+            [ProductsController::class, 'index']
+        )->setName('products.index');
 
-            //* GET route for showing the product edit form.
-            $group->get(
-                '/products/edit/{product_id}',
-                [ProductsController::class, 'edit']
-            )->setName('products.edit');
+        $group->get(
+            '/products/create',
+            [ProductsController::class, 'create']
+        )->setName('products.create');
 
-            //* Handle save edited product info.
-            $group->post(
-                '/products/update',
-                [ProductsController::class, 'update']
-            )->setName('products.update');
-        }
-    );
+        $group->post(
+            '/products',
+            [ProductsController::class, 'store']
+        );
+
+        $group->get(
+            '/products/{id}/edit',
+            [ProductsController::class, 'edit']
+        )->setName('products.edit');
+
+        $group->post(
+            '/products/{id}',
+            [ProductsController::class, 'update']
+        );
+
+        $group->get(
+            '/products/{id}/delete',
+            [ProductsController::class, 'delete']
+        )->setName('products.delete');
+
+        // Category CRUD routes
+        $group->get(
+            '/categories',
+            [CategoriesController::class, 'index']
+        )->setName('categories.index');
+
+        $group->get(
+            '/categories/create',
+            [CategoriesController::class, 'create']
+        )->setName('categories.create');
+
+        $group->post(
+            '/categories',
+            [CategoriesController::class, 'store']
+        );
+
+        $group->get(
+            '/categories/{id}/edit',
+            [CategoriesController::class, 'edit']
+        )->setName('categories.edit');
+
+        $group->post(
+            '/categories/{id}',
+            [CategoriesController::class, 'update']
+        );
+
+        $group->get(
+            '/categories/{id}/delete',
+            [CategoriesController::class, 'delete']
+        )->setName('categories.delete');
+    });
 
     //* NOTE: Route naming pattern: [controller_name].[method_name]
     $app->get('/', [HomeController::class, 'index'])
