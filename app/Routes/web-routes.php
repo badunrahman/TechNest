@@ -15,7 +15,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use App\Helpers\SessionManager;
 use App\Controllers\DemoController;
 use App\Controllers\FlashDemoController;
-
+use App\Controllers\UploadController;
 
 return static function (Slim\App $app): void {
 
@@ -90,6 +90,11 @@ return static function (Slim\App $app): void {
             '/categories/{id}/delete',
             [CategoriesController::class, 'delete']
         )->setName('categories.delete');
+
+         $group->get('/upload', [UploadController::class, 'index'])->setName('upload.index');
+
+$group->post('/upload', [UploadController::class, 'upload'])->setName('upload.upload');
+
     });
 
     //* NOTE: Route naming pattern: [controller_name].[method_name]
